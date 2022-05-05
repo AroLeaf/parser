@@ -1,4 +1,6 @@
 // @ts-check
+class ParseError extends Error {}
+
 module.exports = class Node {
   constructor(name, callback) {
     this.name = name;
@@ -18,45 +20,54 @@ module.exports = class Node {
       children: [],
       current() { return this.tokens[this.tokens.current] },
       next() { return this.tokens[this.tokens.current+1] },
+      
       assert(type) {
-        if (!this.current()) return false;
-        return (typeof type === 'string' && this.current().type === type) 
-          || (typeof type === 'function' && type(this.current()));
+        return !this.current()
+          ? false : typeof type === 'string'
+          ? this.current().type === type : type(this.current())
       },
-      accept(type) {
-        if (type instanceof Node) {
-          const res = type.parse(this.tokens);
-          if (!res) return false;
-          this.children.push(res);
-          return res;
-        } else if (this.assert(type)) {
-          this.children.push(this.current());
-          return this.tokens[this.tokens.current++];
+
+      ignore(...types) {
+        for (const type of types) {
+          if (type instanceof Node) {
+            try {
+              const res = type.parse(this.tokens);
+              if (res) return res;
+            } catch (error) {
+              if (!(error instanceof ParseError)) throw error;
+            }
+          } else if (this.assert(types)) {
+            return this.tokens[this.tokens.current++];
+          }
         }
         return false;
       },
-      expect(type) {
-        if (type instanceof Node) {
-          const res = type.parse(this.tokens);
-          if (!res) this.error(this.current());
-          this.children.push(res);
-          return res;
-        } else if (this.assert(type)) {
-          this.children.push(this.current());
-          return this.tokens[this.tokens.current++];
-        }
-        this.error(this.current());
+      
+      discard(...types) {
+        const res = this.ignore(...types);
+        if (!res) this.error(this.current());
+        return res;
       },
-      discard(count = 1) {
-        return this.children.length -= count;
+      
+      accept(...types) {
+        const res = this.ignore(...types);
+        this.children.push(res);
+        return res;
       },
+      
+      expect(...types) {
+        const res = this.discard(...types);
+        this.children.push(res);
+        return res;
+      },
+      
       error(token) {
-        throw new Error(`Unexpected token "${token.raw}"\n    at ${token.type} (${token.row}:${token.col})`);
+        throw new ParseError(`Unexpected token "${token.raw}"\n    at ${token.type} (${token.row}:${token.col})`);
       }
     }
     
     const res = this.callback(ctx) ?? ctx.children;
-
+    
     return Array.isArray(res) ? {
       type: this.name,
       children: res,
