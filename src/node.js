@@ -7,6 +7,7 @@ module.exports = class Node {
 
   is(callback) {
     this.callback = callback;
+    return this;
   }
 
   parse(tokens) {
@@ -47,7 +48,7 @@ module.exports = class Node {
         this.error(this.current());
       },
       discard(count = 1) {
-        this.children.length -= count;
+        return this.children.length -= count;
       },
       error(token) {
         throw new Error(`Unexpected token "${token.raw}"\n    at ${token.type} (${token.row}:${token.col})`);
