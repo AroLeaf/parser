@@ -69,7 +69,7 @@ module.exports = class Lexer {
         pos += match[0].length;
         return true;
       });
-      if (!matched) throw new Error(`invalid token\n    at "${input.slice(0, 32)}" (${line}:${col})`);
+      if (!matched) throw new Error(`invalid token\n    at "${input.slice(pos, pos + 32)}" (${line}:${col})`);
     }
 
     return tokens;
