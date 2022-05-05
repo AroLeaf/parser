@@ -38,10 +38,10 @@ export interface ParserContext {
   current(): Token | undefined;
   next(): Token | undefined;
   assert(type: string | ((token: Token) => boolean)): boolean;
-  ignore(types: (string | ((token: Token) => boolean) | Node)[]): Parsed;
-  discard(types: (string | ((token: Token) => boolean) | Node)[]): Parsed;
-  accept(types: (string | ((token: Token) => boolean) | Node)[]): Parsed;
-  expect(types: (string | ((token: Token) => boolean) | Node)[]): Parsed;
+  ignore(...types: (string | ((token: Token) => boolean) | Node)[]): Parsed;
+  discard(...types: (string | ((token: Token) => boolean) | Node)[]): Parsed;
+  accept(...types: (string | ((token: Token) => boolean) | Node)[]): Parsed;
+  expect(...types: (string | ((token: Token) => boolean) | Node)[]): Parsed;
   error(token: Token): never;
 }
 
