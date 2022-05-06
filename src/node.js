@@ -34,7 +34,7 @@ module.exports = class Node {
           if (type instanceof Node) {
             try {
               const res = type.parse(this.tokens);
-              if (res) return (this.consumed++, res);
+              if (res) return (this.consumed += res._consumed, res);
             } catch (error) {
               if (!(error instanceof ParseError)) throw error;
             }
@@ -71,9 +71,11 @@ module.exports = class Node {
     
     const res = this.callback(ctx) ?? ctx.children;
     
-    return Array.isArray(res) ? {
+    const node = Array.isArray(res) ? {
       type: this.name,
       children: res,
     } : res;
+    node._consumed = ctx.consumed;
+    return node;
   }
 }
