@@ -16,6 +16,8 @@ module.exports = class Node {
     tokens.current ??= 0;
 
     const ctx = {
+      node: this,
+      consumed: 0,
       tokens,
       children: [],
       current() { return this.tokens[this.tokens.current] },
@@ -32,14 +34,15 @@ module.exports = class Node {
           if (type instanceof Node) {
             try {
               const res = type.parse(this.tokens);
-              if (res) return res;
+              if (res) return (this.consumed++, res);
             } catch (error) {
               if (!(error instanceof ParseError)) throw error;
             }
-          } else if (this.assert(types)) {
+          } else if (this.assert(type)) {
             return this.tokens[this.tokens.current++];
           }
         }
+        this.tokens.current -= this.consumed;
         return false;
       },
       
@@ -51,18 +54,18 @@ module.exports = class Node {
       
       accept(...types) {
         const res = this.ignore(...types);
-        this.children.push(res);
+        if (res) this.children.push(res);
         return res;
       },
       
       expect(...types) {
         const res = this.discard(...types);
-        this.children.push(res);
+        if (res) this.children.push(res);
         return res;
       },
       
       error(token) {
-        throw new ParseError(`Unexpected token "${token.raw}"\n    at ${token.type} (${token.row}:${token.col})`);
+        throw new ParseError(`Unexpected token "${token.raw}"\n    at ${token.type} (${token.line}:${token.col})`);
       }
     }
     
