@@ -50,5 +50,5 @@ export class Node {
   callback?: (ctx: ParserContext) => any;
   constructor(name: string, callback?: (ctx: ParserContext) => any);
   is(callback: (ctx: ParserContext) => any): this;
-  parse(tokens: Token[]): Parsed;
+  parse(tokens: Token[], ctx?: object): Parsed;
 }
