@@ -30,19 +30,20 @@ module.exports = class Node {
       },
 
       ignore(...types) {
+        const initial = this.tokens.current;
         for (const type of types) {
           if (type instanceof Node) {
             try {
-              const res = type.parse(this.tokens, ctx);
-              if (res) return (this.consumed += res._consumed, res);
+              const res = type.parse(this.tokens);
+              if (res) return res;
             } catch (error) {
               if (!(error instanceof ParseError)) throw error;
             }
           } else if (this.assert(type)) {
             return this.tokens[this.tokens.current++];
           }
+          this.tokens.current = initial;
         }
-        this.tokens.current -= this.consumed;
         return false;
       },
       
@@ -65,7 +66,9 @@ module.exports = class Node {
       },
       
       error(token) {
-        throw new ParseError(`Unexpected token "${token.raw}"\n    at ${token.type} (${token.line}:${token.col})`);
+        throw token 
+          ? new ParseError(`Unexpected token "${token.raw}"\n    at ${token.type} (${token.line}:${token.col})`)
+          : new ParseError(`Unexpected end of file`);
       }
     });
     
@@ -75,7 +78,7 @@ module.exports = class Node {
       type: this.name,
       children: res,
     } : res;
-    node._consumed = ctx.consumed;
+
     return node;
   }
 }
