@@ -2,8 +2,13 @@
 const XRegExp = require('xregexp');
 
 class TokenType {
-  constructor(name = '') {
+  constructor(name, options) {
+    if (typeof options === 'string' || options instanceof RegExp) options = { matches: options };
     this.name = name;
+    options?.matches && this.matches(options.matches);
+    options?.and && options.and.forEach(p => this.and(p));
+    options?.discard && this.discard();
+    options?.then && this.then(options.then);
     this.predicates = [];
   }
 
@@ -32,15 +37,7 @@ class TokenType {
 
 module.exports = class Lexer {
   constructor(types) {
-    this.types = types ? Object.entries(types).map(([name, options]) => {
-      const token = new TokenType(name);
-      if (typeof options === 'string' || options instanceof RegExp) options = { matches: options };
-      options.matches && token.matches(options.matches);
-      options.and && options.and.forEach(p => token.and(p));
-      options.discard && token.discard();
-      options.then && token.then(options.then);
-      return token;
-    }) : [];
+    this.types = types ? Object.entries(types).map(([name, options]) => new TokenType(name, options)) : [];
   }
 
   token(name) {

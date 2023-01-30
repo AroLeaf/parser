@@ -6,13 +6,20 @@ export interface Token {
   col: number
 }
 
+declare interface TokenTypeOptions {
+  matches: RegExp | string;
+  discard?: boolean;
+  and?: ((match: RegExpExecArray) => boolean)[];
+  then?: (token: Token) => any;
+}
+
 declare class TokenType {
   name: string;
   predicates: ((match: RegExpExecArray) => boolean)[];
   regex?: RegExp;
   _discard?: boolean;
   callback?: (token: Token) => any;
-  constructor(name?: string);
+  constructor(name: string, options?: TokenTypeOptions | string | RegExp);
   matches(regex: RegExp | string): this;
   and(predicate: (match: RegExpExecArray) => boolean): this;
   discard(): this;
@@ -21,6 +28,7 @@ declare class TokenType {
 
 export class Lexer {
   types: TokenType[];
+  constructor(types?: { [key: string]: TokenTypeOptions | string | RegExp });
   token(name: string): TokenType;
   parse(input: string): Token[];
 }
