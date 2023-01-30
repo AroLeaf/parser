@@ -7,9 +7,10 @@ class TokenType {
     this.predicates = [];
   }
 
-  matches(regex) {
-    if (typeof regex === 'string') regex = XRegExp(XRegExp.escape(regex), regex.includes('\n') ? 's' : '');
-    this.regex = XRegExp(regex);
+  matches(regexOrString) {
+    this.regex = typeof regexOrString === 'string' 
+      ? XRegExp(XRegExp.escape(regexOrString), regexOrString.includes('\n') ? 's' : '') 
+      : XRegExp(regexOrString);
     return this;
   }
 
@@ -30,8 +31,16 @@ class TokenType {
 }
 
 module.exports = class Lexer {
-  constructor() {
-    this.types = [];
+  constructor(types) {
+    this.types = types ? Object.entries(types).map(([name, options]) => {
+      const token = new TokenType(name);
+      if (typeof options === 'string' || options instanceof RegExp) options = { matches: options };
+      options.matches && token.matches(options.matches);
+      options.and && options.and.forEach(p => token.and(p));
+      options.discard && token.discard();
+      options.then && token.then(options.then);
+      return token;
+    }) : [];
   }
 
   token(name) {
