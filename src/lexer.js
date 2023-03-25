@@ -62,6 +62,7 @@ module.exports = class Lexer {
           value: match[1] || match[0],
           line, col,
         };
+        
         type.callback?.(token, match, tokens);
         if (!type._discard) tokens.push(token);
         

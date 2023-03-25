@@ -3,9 +3,13 @@ const util = require('node:util');
 
 class ParseError extends Error {
   constructor(token, options = {}) {
-    const message = token
+    const getName = (type) => typeof type === 'string' ? type : type.name;
+    const message = (token
       ? `Unexpected token "${token.raw}"`
-      : `Unexpected end of file`;
+      : `Unexpected end of file`)
+    + (options.expected?.length > 2
+      ? `, expected one of ${options.expected.map(getName).join(', ')}`
+      : options.expected ? `, expected ${getName(options.expected[0])}` : '');
     super(message);
     this.cause = options.cause;
     this.token = token;
@@ -77,7 +81,7 @@ module.exports = class Node {
           } else if (this.assert(type)) {
             return this.tokens[this.tokens.current++];
           } else {
-            error = new ParseError(this.current());
+            error = new ParseError(this.current(), { expected: types });
           }
           this.tokens.current = initial;
         }
@@ -91,7 +95,7 @@ module.exports = class Node {
       
       discard(...types) {
         const res = this._find(...types);
-        if (res instanceof ParseError) this.error(this.current(), res);
+        if (res instanceof ParseError) this.error(this.current(), types, res);
         return res;
       },
       
@@ -104,14 +108,14 @@ module.exports = class Node {
       
       expect(...types) {
         const res = this._find(...types);
-        if (res instanceof ParseError) this.error(this.current(), res);
+        if (res instanceof ParseError) this.error(this.current(), types, res);
         this.children.push(res);
         return res;
       },
       
-      error(token, cause) {
-        if (token && cause?.token && token.line === cause.token.line && token.col === cause.token.col) throw cause;
-        throw new ParseError(token, { cause });
+      error(token, expected, cause) {
+        if (token && cause?.token && token.line === cause.token.line && token.col === cause.token.col) cause = cause.cause;
+        throw new ParseError(token, { cause, expected });
       }
     });
     
