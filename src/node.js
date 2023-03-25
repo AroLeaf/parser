@@ -1,5 +1,38 @@
 // @ts-check
-class ParseError extends Error {}
+const util = require('node:util');
+
+class ParseError extends Error {
+  constructor(token, options = {}) {
+    const message = token
+      ? `Unexpected token "${token.raw}"`
+      : `Unexpected end of file`;
+    super(message);
+    this.cause = options.cause;
+    this.token = token;
+  }
+
+  getStack() {
+    return this.cause?.getStack?.() || this.stack;
+  }
+
+  [util.inspect.custom]() {
+    return this.toString();
+  }
+
+  toString() {
+    const tokens = [];
+    const collect = (err) => {
+      if (err.token) tokens.push(err.token);
+      if (err.cause) collect(err.cause);
+    }
+    collect(this);
+    return this.getStack().replace(/\n/, '\n' + tokens
+      .reverse()
+      .map(t => `    at ${t.raw} (${t.line}:${t.col})\n`)
+      .join('')
+    );
+  }
+}
 
 module.exports = class Node {
   constructor(name, callback) {
@@ -29,46 +62,56 @@ module.exports = class Node {
           ? this.current().type === type : type(this.current())
       },
 
-      ignore(...types) {
+      _find(...types) {
         const initial = this.tokens.current;
+        let error;
         for (const type of types) {
           if (type instanceof Node) {
             try {
               const res = type.parse(this.tokens);
               if (res) return res;
-            } catch (error) {
-              if (!(error instanceof ParseError)) throw error;
+            } catch (err) {
+              if (!(err instanceof ParseError)) throw err;
+              error = err;
             }
           } else if (this.assert(type)) {
             return this.tokens[this.tokens.current++];
+          } else {
+            error = new ParseError(this.current());
           }
           this.tokens.current = initial;
         }
-        return false;
+        return error;
+      },
+
+      ignore(...types) {
+        const res = this._find(...types);
+        return res instanceof ParseError ? false : res;
       },
       
       discard(...types) {
-        const res = this.ignore(...types);
-        if (!res) this.error(this.current());
+        const res = this._find(...types);
+        if (res instanceof ParseError) this.error(this.current(), res);
         return res;
       },
       
       accept(...types) {
-        const res = this.ignore(...types);
-        if (res) this.children.push(res);
+        const res = this._find(...types);
+        if (res instanceof ParseError) return false;
+        this.children.push(res);
         return res;
       },
       
       expect(...types) {
-        const res = this.discard(...types);
-        if (res) this.children.push(res);
+        const res = this._find(...types);
+        if (res instanceof ParseError) this.error(this.current(), res);
+        this.children.push(res);
         return res;
       },
       
-      error(token) {
-        throw token 
-          ? new ParseError(`Unexpected token "${token.raw}"\n    at ${token.type} (${token.line}:${token.col})`)
-          : new ParseError(`Unexpected end of file`);
+      error(token, cause) {
+        if (token.line === cause?.token.line && token.col === cause?.token.col) throw cause;
+        throw new ParseError(token, { cause });
       }
     });
     

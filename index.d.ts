@@ -50,7 +50,7 @@ export interface ParserContext {
   discard(...types: (string | ((token: Token) => boolean) | Node)[]): Parsed;
   accept(...types: (string | ((token: Token) => boolean) | Node)[]): Parsed;
   expect(...types: (string | ((token: Token) => boolean) | Node)[]): Parsed;
-  error(token: Token): never;
+  error(token: Token, cause: Error): never;
 }
 
 export class Node {
