@@ -110,7 +110,7 @@ module.exports = class Node {
       },
       
       error(token, cause) {
-        if (token.line === cause?.token.line && token.col === cause?.token.col) throw cause;
+        if (token && cause?.token && token.line === cause.token.line && token.col === cause.token.col) throw cause;
         throw new ParseError(token, { cause });
       }
     });
