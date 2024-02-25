@@ -6,14 +6,14 @@ export interface Token {
   col: number
 }
 
-declare interface TokenTypeOptions {
+export interface TokenTypeOptions {
   matches: RegExp | string;
   discard?: boolean;
   and?: ((match: RegExpExecArray) => boolean)[];
   then?: (token: Token) => any;
 }
 
-declare class TokenType {
+export interface TokenType {
   name: string;
   predicates: ((match: RegExpExecArray) => boolean)[];
   regex?: RegExp;

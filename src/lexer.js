@@ -1,5 +1,5 @@
 // @ts-check
-const XRegExp = require('xregexp');
+const regex = require('./regex.js');
 
 class TokenType {
   constructor(name, options) {
@@ -14,8 +14,8 @@ class TokenType {
 
   matches(regexOrString) {
     this.regex = typeof regexOrString === 'string' 
-      ? XRegExp(XRegExp.escape(regexOrString), regexOrString.includes('\n') ? 's' : '') 
-      : XRegExp(regexOrString);
+      ? RegExp(regex.escape(regexOrString), regexOrString.includes('\n') ? 's' : '') 
+      : RegExp(regexOrString);
     return this;
   }
 
@@ -53,7 +53,7 @@ module.exports = class Lexer {
     
     while (pos < input.length) {
       const matched = this.types.some(type => {
-        const match = XRegExp.exec(input, type.regex, pos, true);
+        const match = regex.exec(input, type.regex, pos, true);
         if (!match || !type.predicates.every(p => p(match))) return false;
         
         const token = {
@@ -67,7 +67,7 @@ module.exports = class Lexer {
         if (!type._discard) tokens.push(token);
         
         col += match[0].length;
-        if (type.regex.dotAll) {
+        if (type.regex?.dotAll) {
           const split = match[0].split('\n');
           line += split.length - 1;
           if (split.length > 1) col = split.at(-1).length + 1;
